@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/go-micro/v2/api/server/cors"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/errors"
@@ -25,12 +24,6 @@ type rpcRequest struct {
 // RPC Handler passes on a JSON or form encoded RPC request to
 // a service.
 func RPC(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method == "OPTIONS" {
-		cors.SetHeaders(w, r)
-		return
-	}
-
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

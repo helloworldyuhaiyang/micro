@@ -3,6 +3,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/micro/go-micro/v2/api/server/cors"
 	"net/http"
 	"os"
 	"strings"
@@ -160,6 +161,13 @@ func Run(ctx *cli.Context, srvOpts ...micro.Option) {
 
 	if ctx.Bool("enable_cors") {
 		opts = append(opts, server.EnableCORS(true))
+		corsConfig := &cors.Config{
+			AllowCredentials: ctx.Bool("cors-allowed-credentials"),
+			AllowOrigin:      ctx.String("cors-allowed-origins"),
+			AllowMethods:     ctx.String("cors-allowed-methods"),
+			AllowHeaders:     ctx.String("cors-allowed-headers"),
+		}
+		opts = append(opts, server.CORSConfig(corsConfig))
 	}
 
 	// create the router
@@ -363,6 +371,30 @@ func Commands(options ...micro.Option) []*cli.Command {
 				Usage:   "Enable CORS, allowing the API to be called by frontend applications",
 				EnvVars: []string{"MICRO_API_ENABLE_CORS"},
 				Value:   true,
+			},
+			&cli.BoolFlag{
+				Name:    "cors-allowed-credentials",
+				Usage:   "cors parameters Access-Control-Allow-Credentials",
+				EnvVars: []string{"MICRO_API_CORS_ALLOWED_CREDENTIALS"},
+				Value:   true,
+			},
+			&cli.StringFlag{
+				Name:    "cors-allowed-origins",
+				Usage:   "cors parameters Access-Control-Allow-Origin",
+				EnvVars: []string{"MICRO_API_CORS_ALLOWED_ORIGIN"},
+				Value:   "*",
+			},
+			&cli.StringFlag{
+				Name:    "cors-allowed-methods",
+				Usage:   "cors parameters Access-Control-Allow-Methods",
+				EnvVars: []string{"MICRO_API_CORS_ALLOWED_METHODS"},
+				Value:   "POST, PATCH, GET, OPTIONS, PUT, DELETE",
+			},
+			&cli.StringFlag{
+				Name:    "cors-allowed-headers",
+				Usage:   "cors parameters Access-Control-Allow-Headers",
+				EnvVars: []string{"MICRO_API_CORS_ALLOWED_HEADERS"},
+				Value:   "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
 			},
 		},
 	}

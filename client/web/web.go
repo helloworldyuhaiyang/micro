@@ -4,6 +4,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/micro/go-micro/v2/api/server/cors"
 	"html/template"
 	"net"
 	"net/http"
@@ -23,7 +24,6 @@ import (
 	"github.com/micro/go-micro/v2/api/server/acme"
 	"github.com/micro/go-micro/v2/api/server/acme/autocert"
 	"github.com/micro/go-micro/v2/api/server/acme/certmagic"
-	"github.com/micro/go-micro/v2/api/server/cors"
 	httpapi "github.com/micro/go-micro/v2/api/server/http"
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client/selector"
@@ -253,12 +253,6 @@ func faviconHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *srv) indexHandler(w http.ResponseWriter, r *http.Request) {
-	cors.SetHeaders(w, r)
-
-	if r.Method == "OPTIONS" {
-		return
-	}
-
 	services, err := s.registry.ListServices(registry.ListContext(r.Context()))
 	if err != nil {
 		log.Errorf("Error listing services: %v", err)
@@ -586,6 +580,16 @@ func Run(ctx *cli.Context, srvOpts ...micro.Option) {
 		opts = append(opts, server.TLSConfig(config))
 	}
 
+	if ctx.Bool("enable_cors") {
+		opts = append(opts, server.EnableCORS(true))
+		corsConfig := &cors.Config{
+			AllowCredentials: ctx.Bool("cors-allowed-credentials"),
+			AllowOrigin:      ctx.String("cors-allowed-origins"),
+			AllowMethods:     ctx.String("cors-allowed-methods"),
+			AllowHeaders:     ctx.String("cors-allowed-headers"),
+		}
+		opts = append(opts, server.CORSConfig(corsConfig))
+	}
 	// reverse wrap handler
 	plugins := append(Plugins(), plugin.Plugins()...)
 	for i := len(plugins); i > 0; i-- {
@@ -651,6 +655,36 @@ func Commands(options ...micro.Option) []*cli.Command {
 				Name:    "auth_login_url",
 				EnvVars: []string{"MICRO_AUTH_LOGIN_URL"},
 				Usage:   "The relative URL where a user can login",
+			},
+			&cli.BoolFlag{
+				Name:    "enable_cors",
+				Usage:   "Enable CORS, allowing the API to be called by frontend applications",
+				EnvVars: []string{"MICRO_WEB_ENABLE_CORS"},
+				Value:   true,
+			},
+			&cli.BoolFlag{
+				Name:    "cors-allowed-credentials",
+				Usage:   "cors parameters Access-Control-Allow-Credentials",
+				EnvVars: []string{"MICRO_WEB_CORS_ALLOWED_CREDENTIALS"},
+				Value:   true,
+			},
+			&cli.StringFlag{
+				Name:    "cors-allowed-origins",
+				Usage:   "cors parameters Access-Control-Allow-Origin",
+				EnvVars: []string{"MICRO_WEB_CORS_ALLOWED_ORIGIN"},
+				Value:   "*",
+			},
+			&cli.StringFlag{
+				Name:    "cors-allowed-methods",
+				Usage:   "cors parameters Access-Control-Allow-Methods",
+				EnvVars: []string{"MICRO_WEB_CORS_ALLOWED_METHODS"},
+				Value:   "POST, PATCH, GET, OPTIONS, PUT, DELETE",
+			},
+			&cli.StringFlag{
+				Name:    "cors-allowed-headers",
+				Usage:   "cors parameters Access-Control-Allow-Headers",
+				EnvVars: []string{"MICRO_WEB_CORS_ALLOWED_HEADERS"},
+				Value:   "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
 			},
 		},
 	}
